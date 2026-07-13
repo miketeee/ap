@@ -181,9 +181,9 @@
   <section class="screen" id="screen-edit">
     <label class="field">Deck name</label>
     <input type="text" id="deckNameInput" placeholder="e.g. A&amp;P Ch.18 Blood">
-    <label class="field">Cards (tab-separated: front [TAB] back [TAB] concept note — note is optional)</label>
-    <textarea id="cardsInput" placeholder="Erythropoietin&#9;Hormone from kidneys that stimulates RBC production&#9;Produced in response to low blood O2; triggers RBC production in red bone marrow."></textarea>
-    <div class="hint">Paste directly from a Quizlet tab-delimited export (2 columns), or add a 3rd tab-separated column with a short explanation to power the "Read about this concept" panel during study. Editing an existing deck replaces its card list but keeps progress for unchanged cards.</div>
+    <label class="field">Cards (tab-separated: front [TAB] back [TAB] concept note [TAB] textbook page — note and page are both optional)</label>
+    <textarea id="cardsInput" placeholder="Erythropoietin&#9;Hormone from kidneys that stimulates RBC production&#9;Produced in response to low blood O2; triggers RBC production in red bone marrow.&#9;15"></textarea>
+    <div class="hint">Paste directly from a Quizlet tab-delimited export (2 columns), or add a 3rd column with a short explanation and/or a 4th column with a page number from chapter20.pdf to jump straight to that page. Editing an existing deck replaces its card list but keeps progress for unchanged cards.</div>
     <div class="row" style="margin-top:16px;">
       <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
       <button class="btn btn-primary" onclick="saveDeck()">Save Deck</button>
@@ -207,6 +207,9 @@
         <span class="chev">▾</span> <span id="conceptToggleLabel">Read about this concept</span>
       </button>
       <div class="concept-panel" id="conceptPanel"></div>
+      <a class="concept-toggle" id="pdfLink" style="display:none; text-decoration:none; text-align:center; justify-content:center;" href="#" target="_blank" rel="noopener">
+        📄 View textbook page
+      </a>
 
       <div class="grade-row" id="gradeRow" style="display:none;">
         <button class="grade-btn g-again" onclick="grade(0)">Again<small>&lt;1m</small></button>
@@ -344,7 +347,12 @@ function editDeck(deckId){
   const deck = decks.find(d=>d.id===deckId);
   const cards = loadCards(deckId);
   document.getElementById('deckNameInput').value = deck.name;
-  document.getElementById('cardsInput').value = cards.map(c=>c.front+'\t'+c.back+(c.note?'\t'+c.note:'')).join('\n');
+  document.getElementById('cardsInput').value = cards.map(c=>{
+    let line = c.front+'\t'+c.back;
+    if(c.note || c.page) line += '\t'+(c.note||'');
+    if(c.page) line += '\t'+c.page;
+    return line;
+  }).join('\n');
   document.getElementById('deleteDeckBtn').style.display='block';
   document.getElementById('headerTitle').textContent='Edit Deck';
   document.getElementById('headerSub').textContent='';
@@ -364,7 +372,8 @@ function saveDeck(){
     return {
       front: parts[0].trim(),
       back: parts[1].trim(),
-      note: (parts[2]||'').trim()
+      note: (parts[2]||'').trim(),
+      page: (parts[3]||'').trim()
     };
   }).filter(Boolean);
   if(parsed.length===0){ alert('No valid cards found. Use front[TAB]back per line.'); return; }
@@ -386,8 +395,8 @@ function saveDeck(){
   oldCards.forEach(c=>oldByFront[c.front]=c);
   const newCards = parsed.map(p=>{
     const existing = oldByFront[p.front];
-    if(existing){ return {...existing, back:p.back, note:p.note}; }
-    return { id:uid(), front:p.front, back:p.back, note:p.note, box:0, due:Date.now() };
+    if(existing){ return {...existing, back:p.back, note:p.note, page:p.page}; }
+    return { id:uid(), front:p.front, back:p.back, note:p.note, page:p.page, box:0, due:Date.now() };
   });
   saveCards(deckId, newCards);
   goHome();
@@ -451,6 +460,15 @@ function renderStudyCard(){
   } else {
     toggle.style.display = 'none';
     panel.textContent = '';
+  }
+
+  const pdfLink = document.getElementById('pdfLink');
+  if(c.page && c.page.trim()){
+    pdfLink.style.display = 'flex';
+    pdfLink.href = 'chapter20.pdf#page=' + encodeURIComponent(c.page.trim());
+  } else {
+    pdfLink.style.display = 'none';
+    pdfLink.href = '#';
   }
 }
 

@@ -1,5 +1,5 @@
-const CACHE = 'cards-v2';
-const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE = 'cards-v3';
+const ASSETS = ['./', './index.html', './manifest.json', './icon.svg', './chapter20.pdf'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
